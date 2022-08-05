@@ -16,7 +16,8 @@ I'm creating a team to come together and make a bot with cool features and a cle
 - I'm gonna add craiyon's api too , if you don't know what craiyon is you can search 'Craiyon text to image' on google and find it it's a service to create images by text
 
 
-
+# This bot will be hosted on replIT here is the link to the project
+ - https://replit.com/@morewebLearn/BrownClosedNormalform#main.py
 
 Tell me your ideas in dm moreweb#8692
  
