@@ -1,4 +1,4 @@
-# knott-bot
+# KNOTT-bot
 I'm creating a team to come together and make a bot with cool features and a clean code
 
 # Main features:
