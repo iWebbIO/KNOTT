@@ -1,5 +1,5 @@
 # KnoTT! Bot - Leveling and Leaderboard
-## KnoTT is a global leveling bot used in many servers
+##a global leveling bot used in many servers
 ### This documentation will show you how to invite and use this bot inside of you server
 
 <hr>
