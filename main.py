@@ -3,8 +3,8 @@ from discord.ext import commands, tasks
 import sqlite3
 import getrank
 import asyncio
-import bottokenvariablefile
-BOTNAME = "BOT_NAME_HERE"
+import botsettings
+BOTNAME = botsettings.name
 # Connect to the SQLite database
 conn = sqlite3.connect("Users.db")
 cursor = conn.cursor()
@@ -154,4 +154,4 @@ async def on_message(message):
 
     await bot.process_commands(message)  # Process commands in server channels
 # Run bot
-bot.run(bottokenvariablefile.token)
+bot.run(botsettings.token)
