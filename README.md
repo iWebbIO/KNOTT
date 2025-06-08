@@ -1,4 +1,4 @@
-# KnoTT Bot - Advanced Discord Leveling System
+# KNOTT Bot - Advanced Discord Leveling System
 ## 🚀 A comprehensive leveling bot with achievements, rank roles, and advanced features
 
 <div align="center">
@@ -13,7 +13,7 @@
 
 ## 🌟 Features Overview
 
-KnoTT Bot is a feature-rich Discord leveling system that transforms your server into an engaging community with:
+KNOTT Bot is a feature-rich Discord leveling system that transforms your server into an engaging community with:
 
 ### 🏆 **Achievement System**
 - **14 Default Achievements** with automatic tracking
@@ -44,7 +44,7 @@ KnoTT Bot is a feature-rich Discord leveling system that transforms your server 
 ## 🎯 Quick Start
 
 ### 1. **Invite the Bot**
-[**Click here to add KnoTT to your server**](https://discord.com/api/oauth2/authorize?client_id=1005165227723214988&permissions=134294528&scope=applications.commands%20bot)
+[**Click here to add KNOTT to your server**](https://discord.com/api/oauth2/authorize?client_id=1005165227723214988&permissions=134294528&scope=applications.commands%20bot)
 
 ### 2. **Start Chatting**
 Users automatically gain XP by sending messages (1 XP per message by default)
@@ -191,7 +191,7 @@ kaddrankrole 100 @Legend
 ```env
 # Bot Configuration
 BOT_TOKEN=your_bot_token_here
-BOT_NAME=KnoTT
+BOT_NAME=KNOTT
 OWNER_ID=your_discord_id
 
 # XP System Settings
@@ -201,7 +201,7 @@ LEVEL_UP_BASE=50
 COMMAND_PREFIX=k
 
 # Database
-DATABASE_NAME=knott.db
+DATABASE_NAME=KNOTT.db
 ```
 
 ---
@@ -305,24 +305,4 @@ We welcome contributions! Here's how you can help:
 ---
 
 ## 📄 License
-
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-- **Discord.py** - The amazing Python library for Discord bots
-- **SQLite** - Reliable database engine
-- **Contributors** - Everyone who helped improve KnoTT Bot
-- **Community** - Users who provide feedback and suggestions
-
----
-
-<div align="center">
-
-**KnoTT Bot - Making Discord communities more engaging, one level at a time!** 🎮
-
-*Built with ❤️ by the KnoTT Team*
-
-</div>
