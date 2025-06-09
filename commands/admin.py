@@ -13,8 +13,18 @@ class AdminCommands(commands.Cog):
     
     @commands.command()
     @commands.has_permissions(administrator=True)
-    async def setxp(self, ctx, member: discord.Member, xp_multiplier: float):
+    async def setxp(self, ctx, xp_multiplier: float):
         try:
+            # Check if user is bot owner or if this is a self-hosted instance
+            if ctx.author.id != botsettings.owner_id and not botsettings.is_self_hosted:
+                embed = discord.Embed(
+                    title="Access Denied",
+                    description="Only the bot owner can modify XP multipliers on hosted instances. If you're self-hosting, set `IS_SELF_HOSTED=True` in your environment variables.",
+                    color=discord.Color.red()
+                )
+                await ctx.send(embed=embed)
+                return
+            
             if xp_multiplier < 0.1 or xp_multiplier > 5.0:
                 await ctx.send("XP multiplier must be between 0.1 and 5.0")
                 return

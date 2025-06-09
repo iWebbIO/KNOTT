@@ -277,6 +277,11 @@ async def on_message(message):
             await bot.process_commands(message)
         return
 
+    # Check if message is a bot command - if so, don't give XP
+    if message.content.startswith(bot.command_prefix):
+        await bot.process_commands(message)
+        return
+
     current_time = int(time.time())
     user_key = f"{message.author.id}_{message.guild.id}"
     

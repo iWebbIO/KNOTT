@@ -17,3 +17,6 @@ level_up_base = int(os.getenv('LEVEL_UP_BASE', '50'))
 enable_global_leaderboard = os.getenv('ENABLE_GLOBAL_LEADERBOARD', 'True').lower() == 'true'
 enable_server_leaderboard = os.getenv('ENABLE_SERVER_LEADERBOARD', 'True').lower() == 'true'
 enable_rank_roles = os.getenv('ENABLE_RANK_ROLES', 'False').lower() == 'true'
+
+# Self-hosted instance flag - allows server owners to modify core settings
+is_self_hosted = os.getenv('IS_SELF_HOSTED', 'False').lower() == 'true'

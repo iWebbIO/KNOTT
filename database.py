@@ -9,6 +9,19 @@ class DatabaseManager:
         
     async def init_database(self):
         async with aiosqlite.connect(self.db_path) as db:
+            # Global users table for cross-server data
+            await db.execute("""
+                CREATE TABLE IF NOT EXISTS global_users (
+                    user_id INTEGER PRIMARY KEY,
+                    global_xp INTEGER DEFAULT 0,
+                    global_level INTEGER DEFAULT 1,
+                    total_global_messages INTEGER DEFAULT 0,
+                    last_global_message_time INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Server-specific users table (kept for server-specific stats)
             await db.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,50 +84,92 @@ class DatabaseManager:
     
     async def get_user_data(self, user_id: int, guild_id: int = None) -> Optional[Tuple]:
         async with aiosqlite.connect(self.db_path) as db:
-            if guild_id:
-                cursor = await db.execute(
-                    "SELECT xp, level, total_messages FROM users WHERE user_id = ? AND guild_id = ?",
-                    (user_id, guild_id)
-                )
+            # Always return global data for levels and XP
+            cursor = await db.execute(
+                "SELECT global_xp, global_level, total_global_messages FROM global_users WHERE user_id = ?",
+                (user_id,)
+            )
+            global_data = await cursor.fetchone()
+            
+            if global_data:
+                return global_data
             else:
-                cursor = await db.execute(
-                    "SELECT SUM(xp) as total_xp, MAX(level) as max_level, SUM(total_messages) as total_messages FROM users WHERE user_id = ?",
-                    (user_id,)
-                )
+                # If no global data exists, return None to indicate new user
+                return None
+    
+    async def get_global_user_data(self, user_id: int) -> Optional[Tuple]:
+        """Get global user data across all servers"""
+        async with aiosqlite.connect(self.db_path) as db:
+            cursor = await db.execute(
+                "SELECT global_xp, global_level, total_global_messages FROM global_users WHERE user_id = ?",
+                (user_id,)
+            )
             return await cursor.fetchone()
     
-    async def update_user_xp(self, user_id: int, guild_id: int, xp_gain: int, current_time: int) -> Tuple[int, int, bool]:
+    async def get_server_user_data(self, user_id: int, guild_id: int) -> Optional[Tuple]:
+        """Get server-specific user data"""
         async with aiosqlite.connect(self.db_path) as db:
             cursor = await db.execute(
                 "SELECT xp, level, total_messages FROM users WHERE user_id = ? AND guild_id = ?",
                 (user_id, guild_id)
             )
-            result = await cursor.fetchone()
+            return await cursor.fetchone()
+    
+    async def update_user_xp(self, user_id: int, guild_id: int, xp_gain: int, current_time: int) -> Tuple[int, int, bool]:
+        async with aiosqlite.connect(self.db_path) as db:
+            # Update global user data
+            cursor = await db.execute(
+                "SELECT global_xp, global_level, total_global_messages FROM global_users WHERE user_id = ?",
+                (user_id,)
+            )
+            global_result = await cursor.fetchone()
             
-            if result:
-                current_xp, current_level, total_messages = result
+            if global_result:
+                current_xp, current_level, total_messages = global_result
                 new_xp = current_xp + xp_gain
                 new_level = current_level
                 leveled_up = False
                 
+                # Check for level up
                 xp_needed = current_level * botsettings.level_up_base
                 if new_xp >= xp_needed:
                     new_xp = new_xp - xp_needed
                     new_level += 1
                     leveled_up = True
                 
+                # Update global user data
                 await db.execute(
-                    "UPDATE users SET xp = ?, level = ?, last_message_time = ?, total_messages = ? WHERE user_id = ? AND guild_id = ?",
-                    (new_xp, new_level, current_time, total_messages + 1, user_id, guild_id)
+                    "UPDATE global_users SET global_xp = ?, global_level = ?, last_global_message_time = ?, total_global_messages = ? WHERE user_id = ?",
+                    (new_xp, new_level, current_time, total_messages + 1, user_id)
                 )
             else:
+                # Create new global user
                 new_xp = xp_gain
                 new_level = 1
                 leveled_up = False
                 
                 await db.execute(
+                    "INSERT INTO global_users (user_id, global_xp, global_level, last_global_message_time, total_global_messages) VALUES (?, ?, ?, ?, ?)",
+                    (user_id, new_xp, new_level, current_time, 1)
+                )
+            
+            # Also update server-specific data for server stats
+            cursor = await db.execute(
+                "SELECT xp, level, total_messages FROM users WHERE user_id = ? AND guild_id = ?",
+                (user_id, guild_id)
+            )
+            server_result = await cursor.fetchone()
+            
+            if server_result:
+                server_xp, server_level, server_messages = server_result
+                await db.execute(
+                    "UPDATE users SET xp = xp + ?, last_message_time = ?, total_messages = ? WHERE user_id = ? AND guild_id = ?",
+                    (xp_gain, current_time, server_messages + 1, user_id, guild_id)
+                )
+            else:
+                await db.execute(
                     "INSERT INTO users (user_id, guild_id, xp, level, last_message_time, total_messages) VALUES (?, ?, ?, ?, ?, ?)",
-                    (user_id, guild_id, new_xp, new_level, current_time, 1)
+                    (user_id, guild_id, xp_gain, 1, current_time, 1)
                 )
             
             await db.commit()
@@ -123,13 +178,15 @@ class DatabaseManager:
     async def get_leaderboard(self, guild_id: int = None, limit: int = 20) -> List[Tuple]:
         async with aiosqlite.connect(self.db_path) as db:
             if guild_id:
+                # Server-specific leaderboard (server stats only)
                 cursor = await db.execute(
                     "SELECT user_id, level, xp, total_messages FROM users WHERE guild_id = ? ORDER BY level DESC, xp DESC LIMIT ?",
                     (guild_id, limit)
                 )
             else:
+                # Global leaderboard using global_users table
                 cursor = await db.execute(
-                    "SELECT user_id, SUM(xp) as total_xp, MAX(level) as max_level, SUM(total_messages) as total_messages FROM users GROUP BY user_id ORDER BY max_level DESC, total_xp DESC LIMIT ?",
+                    "SELECT user_id, global_level, global_xp, total_global_messages FROM global_users ORDER BY global_level DESC, global_xp DESC LIMIT ?",
                     (limit,)
                 )
             return await cursor.fetchall()
@@ -137,13 +194,15 @@ class DatabaseManager:
     async def get_user_rank(self, user_id: int, guild_id: int = None) -> int:
         async with aiosqlite.connect(self.db_path) as db:
             if guild_id:
+                # Server-specific rank (but still use global level for consistency)
                 cursor = await db.execute(
-                    "SELECT COUNT(*) + 1 FROM users WHERE guild_id = ? AND (level > (SELECT level FROM users WHERE user_id = ? AND guild_id = ?) OR (level = (SELECT level FROM users WHERE user_id = ? AND guild_id = ?) AND xp > (SELECT xp FROM users WHERE user_id = ? AND guild_id = ?)))",
-                    (guild_id, user_id, guild_id, user_id, guild_id, user_id, guild_id)
+                    "SELECT COUNT(*) + 1 FROM global_users WHERE (global_level > (SELECT global_level FROM global_users WHERE user_id = ?) OR (global_level = (SELECT global_level FROM global_users WHERE user_id = ?) AND global_xp > (SELECT global_xp FROM global_users WHERE user_id = ?)))",
+                    (user_id, user_id, user_id)
                 )
             else:
+                # Global rank
                 cursor = await db.execute(
-                    "SELECT COUNT(*) + 1 FROM (SELECT user_id, MAX(level) as max_level, SUM(xp) as total_xp FROM users GROUP BY user_id) WHERE max_level > (SELECT MAX(level) FROM users WHERE user_id = ?) OR (max_level = (SELECT MAX(level) FROM users WHERE user_id = ?) AND total_xp > (SELECT SUM(xp) FROM users WHERE user_id = ?))",
+                    "SELECT COUNT(*) + 1 FROM global_users WHERE (global_level > (SELECT global_level FROM global_users WHERE user_id = ?) OR (global_level = (SELECT global_level FROM global_users WHERE user_id = ?) AND global_xp > (SELECT global_xp FROM global_users WHERE user_id = ?)))",
                     (user_id, user_id, user_id)
                 )
             result = await cursor.fetchone()
